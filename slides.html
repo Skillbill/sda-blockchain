@@ -1,0 +1,2064 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>Blockchain for Developers</title>
+    <meta charset="utf-8">
+    <script>
+      var notesEnabled =  false ;
+    </script>
+    <script src="slides_files/slides.js"></script>
+
+    
+
+    <script>
+      
+      if (window["location"] && window["location"]["hostname"] == "talks.golang.org") {
+        var _gaq = _gaq || [];
+        _gaq.push(["_setAccount", "UA-11222381-6"]);
+        _gaq.push(["b._setAccount", "UA-49880327-6"]);
+        window.trackPageview = function() {
+          _gaq.push(["_trackPageview", location.pathname+location.hash]);
+          _gaq.push(["b._trackPageview", location.pathname+location.hash]);
+        };
+        window.trackPageview();
+        window.trackEvent = function(category, action, opt_label, opt_value, opt_noninteraction) {
+          _gaq.push(["_trackEvent", category, action, opt_label, opt_value, opt_noninteraction]);
+          _gaq.push(["b._trackEvent", category, action, opt_label, opt_value, opt_noninteraction]);
+        };
+      }
+    </script>
+  <meta name="viewport" content="width=device-width,height=device-height,initial-scale=1"><meta name="apple-mobile-web-app-capable" content="yes"></head>
+
+  <body style="display: none" class="loaded">
+
+    <section class="slides layout-widescreen">
+
+      <article class="current">
+        <h1>Blockchain for Developers</h1>
+        <h3>Software Developers Arena</h3>
+        <h3>16 February 2018</h3>
+        
+          <div class="presenter">
+            
+  
+  <p>
+    Sergio Perticone
+  </p>
+  
+
+  
+  <p>
+    Skillbill srl
+  </p>
+  
+
+          </div>
+        
+      <img class="logo" src="pix/skb.png"></article>
+
+  
+  
+      <article class="next">
+      
+        <h3>Distributed ledger</h3>
+        <!--// -*- js -*-
+////// injected javascript that injects html
+//////--><script>
+(()=>{
+    if (!document.body) {
+        return document.write("you're doing it wrong");
+    }
+    const stamp = (slide) => {
+        let img = document.createElement('img');
+        img.classList.add('logo');
+        img.src = 'pix/skb.png';
+        slide.appendChild(img);
+    }
+    document.addEventListener("DOMContentLoaded", ()=> {
+        let slides = document.getElementsByTagName('article');
+        for (let i = 0; i<slides.length; i++) {
+            stamp(slides[i]);
+        }
+    });
+    let style = document.createElement('style');
+    style.type = 'text/css';
+    style.innerText = '.logo{position: absolute; right: 12px; bottom: 8px; width: 32px}';
+    document.body.appendChild(style);
+})()//</script>
+
+  
+  <p>
+    È un database distribuito di transazioni
+  </p>
+  
+
+  <ul>
+  
+    <li>Non c'è uno storage centrale</li>
+  
+    <li>Non c'è un'autorità amministratrice</li>
+  
+  </ul>
+
+  
+  <p>
+    Un po' come BitTorrent, ma più delicato:
+  </p>
+  
+
+  <ul>
+  
+    <li>non devono sparire transazioni (tx senza seed)</li>
+  
+    <li>ci vuole il consenso tra i peer per mantenere coerenza</li>
+  
+  </ul>
+
+  
+  <p>
+    Spauracchio del sistema: <b>double</b> <b>spending</b>
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article class="far-next">
+      
+        <h2>1. Bitcoin</h2>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Satoshi Nakamoto's Bitcoin</h3>
+        
+  
+  <p>
+    Ottobre 2008:
+  </p>
+  
+<p class="link"><a href="https://bitcoin.org/bitcoin.pdf" target="_blank">Bitcoin: A Peer-to-Peer Electronic Cash System</a></p>
+  
+  <p>
+    Fondamenta teoriche della blockchain
+  </p>
+  
+
+  <ul>
+  
+    <li>Definizione di blocco, come unità del <i>distributed timestamp server</i></li>
+  
+    <li>Definizione di transazione con il meccanismo di firme digitali</li>
+  
+    <li>Proof-of-Work</li>
+  
+  </ul>
+
+  
+  <p>
+    Rilascio del codice e live da gennaio 2009
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Bitcoin P2P network</h3>
+        
+  
+  <p>
+    Ad alto livello:
+  </p>
+  
+
+  <ul>
+  
+    <li>Una nuova transazione è diffusa a tutti i nodi</li>
+  
+    <li>Ogni peer controla tx e la mette in coda</li>
+  
+    <li>Un peer <i>costruisce</i> il suo blocco dalla coda e lo manda in broadcast</li>
+  
+    <li>Ogni peer riceve il nuovo blocco e ne controlla la validità</li>
+  
+    <li>I peer accettano implicitamente il blocco lavorando al successivo</li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h2>Blockchain Internals</h2>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Block</h3>
+        
+  <div class="code">
+
+
+<pre><span num="19">type Block struct {</span>
+<span num="20">    // Metadata</span>
+<span num="21">    Timestamp time.Time</span>
+<span num="22">    Index     int</span>
+<span num="23"></span>
+<span num="24">    // Payload</span>
+<span num="25">    tx []Transaction</span>
+<span num="26"></span>
+<span num="27">    // Previous block's hash</span>
+<span num="28">    PrevHash []byte</span>
+<span num="29"></span>
+<span num="30">    // Proof of work</span>
+<span num="31">    Difficulty int</span>
+<span num="32">    Nonce      int</span>
+<span num="33">}</span>
+</pre>
+
+
+</div>
+<figcaption>struttura del blocco, <a href="src/toychain/block.go" target="_self">src/toychain/block.go</a></figcaption>
+  
+  <p>
+    <code>PrevHash</code> è ciò che forma la <i>chain</i>
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Miner</h3>
+        
+  
+  <p>
+    I miner sono i peer che producono i blocchi
+<br>
+
+    Qualunque peer può essere il miner di un blocco
+  </p>
+  
+
+  <ul>
+  
+    <li>Assicurano che le nuove transazioni siano registrate in maniera sincrona</li>
+  
+  </ul>
+
+  
+  <p>
+    Incentivi:
+  </p>
+  
+
+  <ul>
+  
+    <li>le transazioni immesse nel blocco hanno un costo di commissione</li>
+  
+    <li>i nuovi blocchi contengono una ricompensa (block reward)</li>
+  
+  </ul>
+
+  
+  <p>
+    Qual è il trucco?
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h2>Proof of Work</h2>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Proof of Work</h3>
+        
+  
+  <p>
+    Limitare artificialmente la capacità di creare blocchi
+  </p>
+  
+
+  
+  <p>
+    Un nodo accetta un blocco solo se il miner riesce a provare di aver risolto un problema
+  </p>
+  
+
+  <ul>
+  
+    <li>il problema è difficile da risolvere</li>
+  
+    <li>la soluzione è facile da verificare</li>
+  
+  </ul>
+
+  
+  <p>
+    Il lavoro del miner viene convertito in token (ricompensa)
+  </p>
+  
+
+  
+  <p>
+    In caso di ambiguità un nodo sceglie la chain più lunga (+ lavoro)
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Proof of Work</h3>
+        
+  
+  <p>
+    Grazie alla PoW:
+  </p>
+  
+
+  <ul>
+  
+    <li>no Spam</li>
+  
+    <li>no (D)Denial of Service</li>
+  
+    <li>permette di stabilire il consenso</li>
+  
+    <li>resistenza ad attacchi fraudolenti</li>
+  
+    <li>no Spam</li>
+  
+    <li>throughput impostabile da protocollo</li>
+  
+    <li>no Spam</li>
+  
+    <li>no Spam</li>
+  
+    <li>lovely Spam</li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Proof of Work di Hashcash</h3>
+        
+  
+  <p>
+    Bitcoin ha mutuato la PoW da Hashcash [Dwork, Naor 1992]
+  </p>
+  
+
+  
+  <p>
+    <b>Idea:</b> il francobollo per la posta elettronica
+  </p>
+  
+
+  <ul>
+  
+    <li>dà un <i>peso</i> all'email</li>
+  
+    <li>limita la capacità di mandarne enormi quantità (Spam)</li>
+  
+  </ul>
+
+  
+  <p>
+    Ricorda qualcosa?
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Hashcash</h3>
+        
+  
+  <p>
+    Esempio di francobollo:
+  </p>
+  
+
+  
+  <div class="code"><pre>X-Hashcash: 1:24:180213122530:sergio@localhost::82gsa6jcvgsKQQ:fXAG</pre></div>
+  
+
+  
+  <p>
+    Campi:
+  </p>
+  
+
+  <div class="code">
+
+
+<pre><span num="14">type Header struct {</span>
+<span num="15">    version    int // always 1</span>
+<span num="16">    difficulty int</span>
+<span num="17">    date       Timestamp // YYMMDDhhmmss</span>
+<span num="18">    resource   string    // recipient</span>
+<span num="19">    extension  string    // unused</span>
+<span num="20">    random     string    // base64 encoded</span>
+<span num="21">    nonce      Nonce     // base64 encoded</span>
+<span num="22">}</span>
+</pre>
+
+
+</div>
+<figcaption>header, <a href="src/cmd/hashcash.go" target="_self">src/cmd/hashcash.go</a></figcaption>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Hashcash</h3>
+        
+  
+  <p>
+    Per essere valido l'header deve avere questa proprietà:
+  </p>
+  
+
+  
+  <div class="code"><pre>$ echo -n 1:24:180213122530:sergio@localhost::82gsa6jcvgsKQQ:fXAG | sha1sum
+0000007a89c9a369092a1248b830aa5bd8db3d38  -</pre></div>
+  
+
+  
+  <p>
+    Il suo hash <code>SHA-1</code> deve essere "piccolo"
+  </p>
+  
+
+  <ul>
+  
+    <li>creare un bollo è eseguire un <i>partial</i> preimage attack</li>
+  
+    <li><code>lavoro</code> <code>=</code> #bit più significativi uguali a <code>0</code></li>
+  
+  </ul>
+
+  
+  <p>
+    Non è triviale, computazionalmente, perché <code>SHA-1</code> è una funzione di hash crittografica
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Hashcash</h3>
+        
+  <div class="code playground">
+<pre style="display: none"><span>package main
+
+import (
+	"crypto/rand"
+	"crypto/sha1"
+	"encoding/base64"
+	"encoding/binary"
+	"flag"
+	"fmt"
+	"io"
+	"time"
+)
+
+type Header struct {
+	version    int // always 1
+	difficulty int
+	date       Timestamp // YYMMDDhhmmss
+	resource   string    // recipient
+	extension  string    // unused
+	random     string    // base64 encoded
+	nonce      Nonce     // base64 encoded
+}
+
+func (h *Header) String() string {
+	return fmt.Sprintf("%v:%v:%v:%v::%v:%v",
+		h.version,
+		h.difficulty, h.date,
+		h.resource, h.random, h.nonce)
+}
+
+func (h *Header) Hash() [sha1.Size]byte {
+	str := fmt.Sprintf("%v", h)
+	return sha1.Sum([]byte(str))
+}
+
+func (h *Header) HashIsValid() bool {
+	hash := h.Hash()
+
+	// check first nbytes against 0
+	nbytes := h.difficulty / 8
+
+	for _, b := range hash[:nbytes] {
+		if b != 0x00 {
+			return false
+		}
+	}
+	// check remaining bits
+	nbits := h.difficulty - 8*nbytes
+	if nbits &gt; 0 {
+		mask := uint(0xff) &gt;&gt; uint(nbits)
+		b := uint(hash[nbytes])
+		if (b | mask) != mask {
+			return false
+		}
+	}
+	return true
+}
+
+type Timestamp time.Time
+
+func (ts Timestamp) String() string {
+	t := time.Time(ts)
+	yr, mon, day := t.Date()
+	return fmt.Sprintf("%02d%02d%02d%02d%02d%02d",
+		yr-2000, mon, day, t.Hour(), t.Minute(), t.Second())
+}
+
+type Nonce uint32
+
+const (
+	NonceByteSize = 3
+	NonceMax      = 1&lt;&lt;20 - 1
+)
+
+func NewNonce() Nonce {
+	buf := random(4)
+	v := binary.LittleEndian.Uint32(buf) &amp; NonceMax
+	return Nonce(v)
+}
+
+func (c *Nonce) Next() error {
+	*c++
+	if *c &gt; NonceMax {
+		return fmt.Errorf("overflow")
+	}
+	return nil
+}
+
+func (c Nonce) String() string {
+	buf := make([]byte, 4)
+	binary.LittleEndian.PutUint32(buf, uint32(c))
+	return fmt.Sprintf("%v", b64(buf[:NonceByteSize]))
+}
+
+</span></pre>
+
+<pre><span num="95">func Hashcash(difficulty int, resource string, output chan&lt;- *Header) {</span>
+<span num="96">    h := &amp;Header{</span>
+<span num="97">        version:    1,</span>
+<span num="98">        difficulty: difficulty,</span>
+<span num="99">        date:       Timestamp(time.Now()),</span>
+<span num="100">        resource:   resource,</span>
+<span num="101">    }</span>
+<span num="102">    </span>
+<span num="103">setup:</span>
+<span num="104">    h.random = b64(random(10))</span>
+<span num="105">    h.nonce = NewNonce()</span>
+<span num="106"></span>
+<span num="107">    for {</span>
+<span num="108">        if h.HashIsValid() {</span>
+<span num="109">            output &lt;- h</span>
+<span num="110">            return</span>
+<span num="111">        }</span>
+<span num="112">        err := h.nonce.Next()</span>
+<span num="113">        if err != nil { // overflow</span>
+<span num="114">            goto setup</span>
+<span num="115">        }</span>
+<span num="116">    }</span>
+<span num="117">}</span>
+</pre>
+
+<pre style="display: none"><span>
+var cfg struct {
+	rsc        string
+	difficulty int
+	njobs      int
+	verbose    bool
+	help       bool
+}
+
+func init() {
+	flag.StringVar(&amp;cfg.rsc, "r", "sergio@localhost", "resource")
+	flag.IntVar(&amp;cfg.difficulty, "d", 20, "difficulty (bits)")
+	flag.IntVar(&amp;cfg.njobs, "j", 1, "number of concurrent jobs")
+	flag.BoolVar(&amp;cfg.help, "h", false, "help")
+}
+
+func main() {
+	flag.Parse()
+	if cfg.help || cfg.difficulty &lt; 0 || cfg.njobs &lt;= 0 {
+		flag.PrintDefaults()
+		return
+	}
+	ch := make(chan *Header)
+	for i := 0; i &lt; cfg.njobs; i++ {
+		go Hashcash(cfg.difficulty, cfg.rsc, ch)
+	}
+	clock := time.Tick(100 * time.Millisecond)
+	for {
+		select {
+		case header := &lt;-ch:
+			fmt.Println()
+			fmt.Println(header)
+			return
+
+		case &lt;-clock:
+			fmt.Printf(".")
+		}
+	}
+}
+
+func random(size int64) []byte {
+	buf := make([]byte, size)
+	r := io.LimitReader(rand.Reader, size)
+	r.Read(buf)
+	return buf
+}
+
+func b64(buf []byte) string {
+	enc := base64.StdEncoding.WithPadding(base64.NoPadding)
+	return enc.EncodeToString(buf)
+}
+</span></pre>
+</div>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Proof of Work nella Blockchain</h3>
+        
+  <div class="code">
+
+
+<pre><span num="97">func (m *miner) mine(output chan&lt;- *Block) {</span>
+<span num="98">    block := m.prepareNextBlock()</span>
+<span num="99">    block.Nonce = rand.Int()</span>
+<span num="100"></span>
+<span num="101">    for i := 0; i &lt; maxRounds; i++ {</span>
+<span num="102">        if m.chain.ProofIsValid(block.Difficulty, block.Hash()) {</span>
+<span num="103">            output &lt;- block</span>
+<span num="104">            return</span>
+<span num="105">        }</span>
+<span num="106">        block.Nonce++</span>
+<span num="107">    }</span>
+<span num="108">    output &lt;- nil</span>
+<span num="109">}</span>
+</pre>
+
+
+</div>
+<figcaption>goroutine che mina un blocco, <a href="src/toychain/miner.go" target="_self">src/toychain/miner.go</a></figcaption>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Verifica della PoW</h3>
+        
+  <div class="code">
+
+
+<pre><span num="138">func (c *Chain) ProofIsValid(difficulty int, hash []byte) bool {</span>
+<span num="139">    // check first nbytes against 0</span>
+<span num="140">    nbytes := difficulty / 8</span>
+<span num="141">    for _, b := range hash[:nbytes] {</span>
+<span num="142">        if b != 0x00 {</span>
+<span num="143">            return false</span>
+<span num="144">        }</span>
+<span num="145">    }</span>
+<span num="146">    // check remaining bits</span>
+<span num="147">    nbits := uint(difficulty - 8*nbytes)</span>
+<span num="148">    if nbits == 0 {</span>
+<span num="149">        return true</span>
+<span num="150">    }</span>
+<span num="151">    if nbits &gt; 0 {</span>
+<span num="152">        mask := uint(0xff &gt;&gt; nbits)</span>
+<span num="153">        b := uint(hash[nbytes])</span>
+<span num="154">        if (b | mask) != mask {</span>
+<span num="155">            return false</span>
+<span num="156">        }</span>
+<span num="157">    }</span>
+<span num="158">    return true</span>
+<span num="159">}</span>
+</pre>
+
+
+</div>
+<figcaption>verifica della PoW, <a href="src/toychain/chain.go" target="_self">src/toychain/chain.go</a></figcaption>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Proof of Stake</h3>
+        
+  
+  <p>
+    Alla Proof of Work (Waste?) c'è una possibile alternativa
+  </p>
+  
+
+  
+  <p>
+    funzione randomica che assegna il diritto di creare un blocco
+  </p>
+  
+
+  
+  <p>
+    La funzione è pesata proporzionalmente a quanto un candidato (validator) scommette di essere lui il <i>prescelto</i>
+  </p>
+  
+
+  <ul>
+  
+    <li>candidati eseguono una transazione speciale che "deposita" una somma (stake)</li>
+  
+    <li>ogni nodo, usando <i>f</i>, sceglie un miner per il blocco successivo</li>
+  
+    <li>la chain converge per il via delle regole del consenso</li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h2>Transazioni</h2>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Transazione</h3>
+        
+  
+  <p>
+    Le transazioni hanno questa struttura:
+  </p>
+  
+
+  <div class="code">
+
+
+<pre><span num="18">type Transaction struct {</span>
+<span num="19">    Inputs  []UTXO</span>
+<span num="20">    Outputs []string // addresses</span>
+<span num="21">    Tokens  []int    // (not using a map just to look like bitcoin)</span>
+<span num="22"></span>
+<span num="23">    PubKey    crypto.PublicKey</span>
+<span num="24">    Signature crypto.Signature</span>
+<span num="25">}</span>
+</pre>
+
+
+</div>
+<figcaption>transazione, <a href="src/toychain/tx.go" target="_self">src/toychain/tx.go</a></figcaption>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>UTXO</h3>
+        
+  
+  <p>
+    I'oggetto di una transazione sono gli UTXO
+  </p>
+  
+
+  <ul>
+  
+    <li>Non sono divisibili</li>
+  
+    <li>Sono l'analogo delle monete</li>
+  
+  </ul>
+
+  <div class="code">
+
+
+<pre><span num="18">type UTXO struct {</span>
+<span num="19">    OutputIndex int</span>
+<span num="20">    TxIndex     int</span>
+<span num="21">    BlockIndex  int</span>
+<span num="22">}</span>
+</pre>
+
+
+</div>
+<figcaption>unspent transaction output, <a href="src/toychain/utxo.go" target="_self">src/toychain/utxo.go</a></figcaption>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>UTXO Set</h3>
+        
+  <ul>
+  
+    <li>I nodi popolano un database locale per poter validare velocemente la transazioni</li>
+  
+  </ul>
+
+  <div class="code">
+
+
+<pre><span num="24">type UTXOSet struct {</span>
+<span num="25">    sync.RWMutex</span>
+<span num="26">    data map[string][]UTXO</span>
+<span num="27">}</span>
+</pre>
+
+
+</div>
+
+  
+  <div class="code"><pre>func (set UTXOSet) Get(address string) []UTXO
+func (set UTXOSet) Add(address string, utxo UTXO)
+func (set UTXOSet) Remove(address string, utxo UTXO)
+func (set UTXOSet) Contains(address string, utxo UTXO) bool</pre></div>
+  
+<figcaption>UTXO Set, <a href="src/toychain/utxo.go" target="_self">src/toychain/utxo.go</a></figcaption>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>UTXO</h3>
+        
+  
+  <p>
+    Saldo di un conto sulla Toychain:
+  </p>
+  
+
+  <div class="code">
+
+
+<pre><span num="242">func (c *Chain) fundsFromUTXO(utxo UTXO) int {</span>
+<span num="245">    // ...</span>
+<span num="251">    b := c.Block(utxo.BlockIndex)</span>
+<span num="252">    tx := b.tx[utxo.TxIndex]</span>
+<span num="253">    return tx.Tokens[utxo.OutputIndex]</span>
+<span num="254">}</span>
+</pre>
+
+
+</div>
+
+  <div class="code">
+
+
+<pre><span num="130">func (c *Chain) Funds(address string) int {</span>
+<span num="131">    funds := 0</span>
+<span num="132">    for _, utxo := range c.utxoset.Get(address) {</span>
+<span num="133">        funds += c.fundsFromUTXO(utxo)</span>
+<span num="134">    }</span>
+<span num="135">    return funds</span>
+<span num="136">}</span>
+</pre>
+
+
+</div>
+<figcaption>token dagli utxo, <a href="src/toychain/chain.go" target="_self">src/toychain/chain.go</a></figcaption>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>UTXO</h3>
+        
+  
+  <p>
+    Trasferimento di UTXO
+  </p>
+  
+
+  <div class="code">
+
+
+<pre><span num="201">    for i, tx := range block.tx {</span>
+<span num="202">        // destroy inputs:</span>
+<span num="203">        for _, utxo := range tx.Inputs {</span>
+<span num="204">            addr := tx.PubKey.Address()</span>
+<span num="205">            c.utxoset.Remove(addr, utxo)</span>
+<span num="206">        }</span>
+<span num="207">        // distribute outputs:</span>
+<span num="208">        for j, output := range tx.Outputs {</span>
+<span num="209">            c.utxoset.Add(output, UTXO{</span>
+<span num="210">                BlockIndex:  block.Index,</span>
+<span num="211">                TxIndex:     i,</span>
+<span num="212">                OutputIndex: j,</span>
+<span num="213">            })</span>
+<span num="214">        }</span>
+<span num="215">        // ...</span>
+</pre>
+
+
+</div>
+<figcaption>snippet trasferimento utxo, <a href="src/toychain/chain.go" target="_self">src/toychain/chain.go</a></figcaption>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Indirizzi</h3>
+        
+  
+  <p>
+    La sicurezza di Bitcoin è basata sulla crittografia a chiave asimmetrica
+<br>
+
+    L'indirizzo è derivato dalla chiave pubblica
+  </p>
+  
+
+  <div class="code">
+
+
+<pre><span num="82">func (k *publicKey) Address() string {</span>
+<span num="83">    str := fmt.Sprint(*k.data)</span>
+<span num="84">    hash := Hash([]byte(str))</span>
+<span num="85">    return encoder.EncodeToString(hash)</span>
+<span num="86">}</span>
+</pre>
+
+
+</div>
+<figcaption>generazione indirizzo, <a href="src/toychain/crypto/crypto.go" target="_self">src/toychain/crypto/crypto.go</a></figcaption>
+  
+  <p>
+    Esempi di indirizzi:
+  </p>
+  
+
+  <ul>
+  
+    <li>Toychain: <code>LnvGRRelRQFiUw0QaIbfzKO0yW4jebBcIpEcqjIejCI</code></li>
+  
+    <li>Bitcoin: <code>14v6afb9yYFmM3fozN54yxsEtBCLVmoRwx</code></li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Transazioni</h3>
+        
+  
+  <p>
+    Alice vuole pagare token a Bob:
+  </p>
+  
+
+  <ul>
+  
+    <li>Bob ed Alice generano due coppie di chiavi asimmetriche</li>
+  
+    <li>Bob ed Alice si scambiano le chiavi pubbliche su un canale sicuro</li>
+  
+    <li>Alice crea una transazione verso l'hash della <i>pubkey</i> di Bob (indirizzo)</li>
+  
+    <li>Alice firma la transazione con la propria <i>privkey</i></li>
+  
+  </ul>
+
+  
+  <p>
+    I token trasferiti saranno spendibili solo da chi possiede la chiave privata di Bob
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Transazioni</h3>
+        
+<div class="image">
+  <img src="pix/tx.png">
+</div>
+<figcaption>meccanismo crittografico delle le transazioni</figcaption>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>PayToAddress</h3>
+        
+  <div class="code">
+
+
+<pre><span num="36">func (p *payer) PayToAddress(address string, amount int) error {</span>
+<span num="37">    myaddr := p.privKey.Public().Address()</span>
+<span num="38">    myutxo := p.chain.utxoset.Get(myaddr)</span>
+<span num="39">    if len(myutxo) == 0 {</span>
+<span num="40">        return fmt.Errorf("no utxo for %v", myaddr)</span>
+<span num="41">    }</span>
+<span num="42">    mytokens := make([]int, len(myutxo))</span>
+<span num="43">    for i, utxo := range myutxo {</span>
+<span num="44">        mytokens[i] = p.chain.fundsFromUTXO(utxo)</span>
+<span num="45">    }</span>
+<span num="46">    inputs, change, err := p.genInputs(myutxo, mytokens, amount)</span>
+<span num="47">    if err != nil {</span>
+<span num="48">        return err</span>
+<span num="49">    }</span>
+<span num="50">    outputs, tokens := []string{address}, []int{amount}</span>
+<span num="51">    if change &gt; 0 { // give me back the change, no fees in toychain</span>
+<span num="52">        outputs = append(outputs, myaddr)</span>
+<span num="53">        tokens = append(tokens, change)</span>
+<span num="54">    }</span>
+<span num="55">    tx := NewTx(inputs, outputs, tokens)</span>
+<span num="56">    tx.Sign(p.privKey)</span>
+<span num="57">    p.chain.SubmitTransaction(tx)</span>
+<span num="58">    return nil</span>
+<span num="59">}</span>
+</pre>
+
+
+</div>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Transazioni</h3>
+        
+  <div class="code">
+
+
+<pre><span num="289">func (c *Chain) checkTransaction(tx Transaction) error {</span>
+<span num="290">    var funds, output int</span>
+<span num="291">    valid := tx.PubKey.Verify(tx.Hash(), tx.Signature)</span>
+<span num="292">    if !valid {</span>
+<span num="293">        return fmt.Errorf("invalid signature")</span>
+<span num="294">    }</span>
+<span num="295">    addr := tx.PubKey.Address()</span>
+<span num="296">    for _, utxo := range tx.Inputs {</span>
+<span num="297">        if c.utxoset.Contains(addr, utxo) == false {</span>
+<span num="298">            return fmt.Errorf("invalid inputs")</span>
+<span num="299">        }</span>
+<span num="300">        funds += c.fundsFromUTXO(utxo)</span>
+<span num="301">    }</span>
+<span num="302">    for i := range tx.Tokens {</span>
+<span num="303">        output += tx.Tokens[i]</span>
+<span num="304">    }</span>
+<span num="305">    if funds &lt; output {</span>
+<span num="306">        return fmt.Errorf("not enough funds: %v &lt; %v", funds, output)</span>
+<span num="307">    }</span>
+<span num="308">    return nil</span>
+<span num="309">}</span>
+</pre>
+
+
+</div>
+<figcaption>verifica di una transazione, <a href="src/toychain/chain.go" target="_self">src/toychain/chain.go</a></figcaption>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Transazioni</h3>
+        
+  
+  <p>
+    Per evitare il double spending, sono previste le seguenti limitazioni:
+  </p>
+  
+
+  <ul>
+  
+    <li>Un pagamento può essere accettato con sicurezza dopo circa 6 blocchi</li>
+  
+    <li>Per gli UTXO di una coinbase bisogna aspettare 100 blocchi (per protocollo)</li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h2>2. Smart Contracts</h2>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Smart Contracts</h3>
+        
+  
+  <p>
+    Il termine Smart Contract viene introdotto da Nick Szabo nel 1996
+  </p>
+  
+
+  
+  <p>
+    Szabo descrive la possibilità di creare contratti tra estranei con 
+la mediazione di protocolli software e l'aiuto di tecniche 
+crittografiche
+  </p>
+  
+
+  
+  <p>
+    Questi contratti devono possedere:
+  </p>
+  
+
+  <ul>
+  
+    <li>observability</li>
+  
+    <li>verifiability</li>
+  
+    <li>privity</li>
+  
+    <li>enforceability</li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Smart Contract</h3>
+        
+  <ul>
+  
+    <li>È un programma</li>
+  
+    <li>Agisce all'interno di un protocollo con garanzie simili a quelle di un distributed ledger</li>
+  
+  </ul>
+
+  
+  <p>
+    Possiamo usare la blockchain?
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Bitcoin scripting</h3>
+        
+  
+  <p>
+    In effetti abbiamo semplificato un po', la verifica delle transazioni è un po' più sofisticata
+  </p>
+  
+
+  
+  <p>
+    Ad una transazione è associato un lucchetto digitale sotto forma di programma
+  </p>
+  
+
+  <ul>
+  
+    <li>il programma è eseguito da tutti i nodi</li>
+  
+    <li>se il programma, con un dato input, è valutato a <i>true</i> la transazione è sbloccata</li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Bitcoin VM</h3>
+        
+  
+  <p>
+    Ogni nodo esegue una VM
+  </p>
+  
+
+  <ul>
+  
+    <li>macchina a stack</li>
+  
+    <li>isolata dall'host</li>
+  
+    <li>interpreta bytecode</li>
+  
+    <li>non Turing-completa</li>
+  
+  </ul>
+
+  
+  <p>
+    Un transazione viene effettuata tramite l'esecuzione di uno script
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Bitcoin VM</h3>
+        
+  
+  <p>
+    Sketch di funzionamento della VM:
+  </p>
+  
+
+  
+  <div class="code"><pre>for {
+    input := nextInput()
+    if input.isEOF() {
+       return stack.pop()
+    }
+    if input.isData() {
+        stack.push(input.Data())
+        continue
+    }
+    switch input.OPCode() {
+    case OP_DUP:
+        v := stack.pop()
+        stack.push(v)
+        stack.push(v)
+    ...
+    }
+}</pre></div>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Script</h3>
+        
+  
+  <p>
+    Gli script per Bitcoin sono un'espressione RPN della forma:
+  </p>
+  
+
+  
+  <div class="code"><pre>[ DATO... ] [ DATO | OPCODE ]...
+   input       programma</pre></div>
+  
+
+  <ul>
+  
+    <li>predicato logico che permette l'utilizzo degli UTXO</li>
+  
+  </ul>
+
+  <ul>
+  
+    <li>il più comune per le transazioni è Pay to Public Key Hash (P2PKH)</li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>P2PKH</h3>
+        
+  
+  <p>
+    Scenario: Alice vuole pagare Bob
+  </p>
+  
+
+  <ul>
+  
+    <li>Alice crea una transazione con script P2PKH:</li>
+  
+  </ul>
+
+  
+  <div class="code"><pre>OP_DUP OP_HASH160 $hash_pubkey_bob OP_EQUAL OP_VERIFY OP_CHECKSIG</pre></div>
+  
+
+  
+  <p>
+    Scenario: Bob vuole spendere i bitcoin ricevuti di Alice
+  </p>
+  
+
+  <ul>
+  
+    <li>Bob crea una transazione con input gli UTXO creati dalla transazione di Alice</li>
+  
+    <li>Bob aggiunge alla transazione la sua chiave pubblica e firma la transazione</li>
+  
+    <li>I nodi eseguono lo script di Alice con gli input di Bob:</li>
+  
+  </ul>
+
+  
+  <div class="code"><pre>$signature_bob $pubkey_bob OP_DUP OP_HASH160 $hash_pubkey_bob OP_EQUAL OP_VERIFY OP_CHECKSIG</pre></div>
+  
+
+  
+  <p>
+    Se il risultato è <i>true</i> la transazione può essere confermata
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Script alternativi</h3>
+        
+  <ul>
+  
+    <li>M-of-N Multi Signature:</li>
+  
+  </ul>
+
+  
+  <div class="code"><pre>$m $pubkey_1 ... $pubkey_n $n OP_CHECKMULTISIG</pre></div>
+  
+
+  <ul>
+  
+    <li>Sblocco mediante token privato:</li>
+  
+  </ul>
+
+  
+  <div class="code"><pre>OP_SHA256 OP_SHA256 $given_hash EQUAL</pre></div>
+  
+
+  <ul>
+  
+    <li>Transazioni con vincoli temporali:</li>
+  
+  </ul>
+
+  
+  <div class="code"><pre>$expire_value OP_CHECKLOCKTIMEVERIFY OP_DROP</pre></div>
+  
+
+  <ul>
+  
+    <li>Regalare bitcoin:</li>
+  
+  </ul>
+
+  
+  <div class="code"><pre>OP_TRUE</pre></div>
+  
+
+  <ul>
+  
+    <li>Bruciare bitcoin:</li>
+  
+  </ul>
+
+  
+  <div class="code"><pre>OP_RETURN</pre></div>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Limitazioni</h3>
+        
+  
+  <p>
+    Gli Smart Contract su bitcoin non sembrano poi così "smart"
+  </p>
+  
+
+  <ul>
+  
+    <li>Limitazioni di calcolabilità</li>
+  
+    <li>Mancanza di stato</li>
+  
+    <li>Blockchain-blindness</li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h2>Ethereum</h2>
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Ethereum</h3>
+        <p class="link"><a href="https://web.archive.org/web/20150328054135/https://github.com/ethereum/wiki/wiki/White-Paper" target="_blank">A Next-Generation Smart Contract and Decentralized Application Platform</a></p>
+  
+  <p>
+    <b>Idea</b>: Sfruttare la tecnologia della blockchain e generalizzarla
+  </p>
+  
+
+  
+  <p>
+    Non non piattaforma che esegue contratti per potere scambiare valuta digitale
+<br>
+
+    Ma una macchina distribuita per contratti arbitrari
+  </p>
+  
+
+  
+  <p>
+    Una sorta di blockchain universale (ERC20)
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Accounts</h3>
+        
+  
+  <p>
+    Non ci sono UTXO
+  </p>
+  
+
+  
+  <p>
+    Ad un account Ethereum è invece associato uno stato:
+  </p>
+  
+
+  <ul>
+  
+    <li>nonce</li>
+  
+    <li>saldo</li>
+  
+    <li>storage</li>
+  
+    <li>codice</li>
+  
+  </ul>
+
+  
+  <p>
+    Un transazione corrisponde ad un cambio di stato
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Accounts</h3>
+        
+  
+  <p>
+    Esistono due tipi di account
+  </p>
+  
+
+  
+  <p>
+    Esterni
+  </p>
+  
+
+  <ul>
+  
+    <li>Analoghi agli indirizzi bitcoin</li>
+  
+  </ul>
+
+  
+  <p>
+    Contratti
+  </p>
+  
+
+  <ul>
+  
+    <li>possono effettuare transazioni solo in risposta a tx ricevute</li>
+  
+    <li>possono interagire con altri contratti</li>
+  
+    <li>devono essere creati con una tx particolare</li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Indirizzo</h3>
+        
+  
+  <p>
+    160 bit meno significativi dell'hash della chiave pubblica
+  </p>
+  
+
+  
+  <div class="code"><pre>indirizzo = SHA-3(pubKey) &amp; (1&lt;&lt;160) - 1</pre></div>
+  
+
+  
+  <p>
+    Esempio: <code>0x627306090abaB3A6e1400e9345bC60c78a8BEf57</code>
+  </p>
+  
+
+  <ul>
+  
+    <li>No checksum</li>
+  
+    <li>Indipendente dal tipo di account</li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>EVM</h3>
+        
+  
+  <p>
+    La EVM va a benzina (gas), in questo modo è possibile avere un upper bound per un dato programma
+  </p>
+  
+
+  
+  <p>
+    Un cambio di stato consuma gas
+  </p>
+  
+
+  
+  <p>
+    Per ogni tx bisogna specificare:
+  </p>
+  
+
+  <ul>
+  
+    <li><b>Gas</b> <b>Limit</b>: la massima quantità di benzina che si è disposti a comprare</li>
+  
+    <li><b>Gas</b> <b>Price</b>: il prezzo a cui si è disposti a comprare un unità di gas</li>
+  
+  </ul>
+
+  
+  <p>
+    Se la benzina è sufficiente per la tx, l'eventuale avanzo viene rimborsato
+<br>
+
+    Altrimenti la transazione è annullata (lo stato non cambia)
+  </p>
+  
+
+  
+  <p>
+    I costi di commissione sono il prodotto tra il gas consumato e il prezzo proposto
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>ether</h3>
+        
+  
+  <p>
+    Ethereum ha una moneta nativa: ether
+  </p>
+  
+
+  
+  <p>
+    Protocollo → Ethereum
+<br>
+
+    Moneta → ether (ETH)
+  </p>
+  
+
+  
+  <p>
+    La blockchain di Ethereum non esiste per supportare la moneta, ma il contrario
+  </p>
+  
+
+  
+  <p>
+    Gli ether sono il meccanismo per regolare le risorse
+  </p>
+  
+
+  <ul>
+  
+    <li>l'ether ha come più piccolo sottomultiplo il <code>wei</code> (10e-18 ETH)</li>
+  
+  </ul>
+
+  <ul>
+  
+    <li>Il prezzo del gas è solitamente riportato in wei o Gwei</li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Solidity</h3>
+        
+  
+  <p>
+    Il linguaggio "contract-oriented" per lo sviluppo di Smart Contract su Ethereum
+  </p>
+  
+
+  <ul>
+  
+    <li>sintassi "ispirata" a javascript</li>
+  
+    <li>staticamente tipato</li>
+  
+    <li>non ideato da esperti di linguaggi programmazione</li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Solidity</h3>
+        
+  
+  <p>
+    <i>Does</i> <i>anybody</i> <i>remember</i> <i>DAO</i>?
+  </p>
+  
+
+  
+  <p>
+    Alcuni problemi di design:
+  </p>
+  
+
+  <ul>
+  
+    <li>tutto di default è mutabile</li>
+  
+    <li>nessun check a compile time delle annotazioni</li>
+  
+    <li>operazioni su interi non sono sicure (overflow)</li>
+  
+    <li>la gestione interi a virgola fissa è incompleta</li>
+  
+    <li>l'ordine di valutazione delle espressioni non è definita</li>
+  
+  </ul>
+
+  
+  <p>
+    In generale sono problemi ben affrontati in letteratura e molti risolti in linguaggi general purpose
+  </p>
+  
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Solidity</h3>
+        
+  <div class="code">
+
+
+<pre><span num="3">contract Voting {</span>
+<span num="4">  mapping (bytes32 =&gt; uint8) public votes;</span>
+<span num="5">  mapping (bytes32 =&gt; bool) public validCandidates;</span>
+<span num="6">  </span>
+<span num="7">  function Voting(bytes32[] candidates) public {</span>
+<span num="8">    for (uint i=0; i&lt;candidates.length; i++) {</span>
+<span num="9">       validCandidates[candidates[i]] = true;</span>
+<span num="10">    }</span>
+<span num="11">  }</span>
+<span num="12"></span>
+<span num="13">  function totalVotesFor(bytes32 candidate) view public returns (uint8) {</span>
+<span num="14">    require(isValid(candidate));</span>
+<span num="15">    return votes[candidate];</span>
+<span num="16">  }</span>
+<span num="17"></span>
+<span num="18">  function voteFor(bytes32 candidate) public {</span>
+<span num="19">    require(isValid(candidate));</span>
+<span num="20">    votes[candidate] += 1;</span>
+<span num="21">  }</span>
+<span num="22"></span>
+<span num="23">  function isValid(bytes32 candidate) view public returns (bool) {</span>
+<span num="24">     return validCandidates[candidate];</span>
+<span num="25">  }</span>
+<span num="26">}</span>
+</pre>
+
+
+</div>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Compilazione contratto</h3>
+        
+  <div class="code">
+
+
+<pre><span num="1">const fs = require('fs');</span>
+<span num="2">const solc = require('solc'); // npm install solc</span>
+<span num="3"></span>
+<span num="4">module.exports = {</span>
+<span num="5">    compile: function(path, klass) {</span>
+<span num="6">        return new Promise((resolve, reject) =&gt; {</span>
+<span num="7">            fs.readFile(path, (err, data) =&gt; {</span>
+<span num="8">                if (err) {</span>
+<span num="9">                    return reject(err);</span>
+<span num="10">                }</span>
+<span num="11">                const output = solc.compile(data.toString());</span>
+<span num="12">                const compiledContract = output.contracts[`:${klass}`];</span>
+<span num="13">                if (compiledContract === undefined) {</span>
+<span num="14">                    return reject(`no contract class "${klass}" in "${path}"`);</span>
+<span num="15">                }</span>
+<span num="16">                resolve({</span>
+<span num="17">                    abi: compiledContract.interface,</span>
+<span num="18">                    bytecode: compiledContract.bytecode</span>
+<span num="19">                });</span>
+<span num="20">            });</span>
+<span num="21">        });</span>
+<span num="22">    }</span>
+<span num="23">};</span>
+</pre>
+
+
+</div>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Deploy sulla blockchain</h3>
+        
+  <div class="code">
+
+
+<pre><span num="1">const Web3 = require('web3');</span>
+<span num="2">const cc = require('./compile');</span>
+<span num="3">const provider = new Web3.providers.HttpProvider('http://localhost:7545')</span>
+<span num="4">const contractOwner = '0x627306090abaB3A6e1400e9345bC60c78a8BEf57';</span>
+<span num="5">const candidates = ['Zaphod Beeblebrox', 'Foobar', 'Qux'];</span>
+<span num="6"></span>
+<span num="7">cc.compile('../sol/voting.sol', 'Voting').then(data =&gt; {</span>
+<span num="8">    const {abi, bytecode} = data;</span>
+<span num="9">    const web3 = new Web3(provider);</span>
+<span num="10">    const contract = new web3.eth.Contract(JSON.parse(abi));</span>
+<span num="11">    return contract.deploy({</span>
+<span num="12">        data: bytecode,</span>
+<span num="13">        arguments: [ candidates.map(Web3.utils.fromAscii) ]</span>
+<span num="14">    }).send({</span>
+<span num="15">        from: contractOwner,</span>
+<span num="16">        gas: 900000,</span>
+<span num="17">        gasPrice: '20000000000' // wei</span>
+<span num="18">    });</span>
+<span num="19">}).then(receipt =&gt; {</span>
+<span num="20">    /* ... */</span>
+<span num="21">}).catch(err =&gt; {</span>
+<span num="22">    /* ... */</span>
+<span num="23">});</span>
+</pre>
+
+
+</div>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Ganache</h3>
+        <p class="link"><a href="https://github.com/trufflesuite/ganache" target="_blank">github.com/trufflesuite/ganache</a></p>
+<div class="image">
+  <img src="pix/ganache.png" width="800">
+</div>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Voting DAPP</h3>
+        <figcaption><a href="dapp/voting.html" target="_self">dapp/voting.html</a></figcaption>
+<iframe src="slides_files/a.htm" width="800" height="600"></iframe>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+  
+      <article>
+      
+        <h3>Conclusioni</h3>
+        
+  
+  <p>
+    Bitcoin
+  </p>
+  
+
+  <ul>
+  
+    <li>fondamentale dal punto di vista storico</li>
+  
+    <li>aiuta a definire i concetti generali della tecnologia</li>
+  
+  </ul>
+
+  
+  <p>
+    Ethereum
+  </p>
+  
+
+  <ul>
+  
+    <li>focus sulla parte computativa</li>
+  
+    <li>piattaforma su cui poter sviluppare nuove idee</li>
+  
+  </ul>
+
+  
+  <p>
+    Ulteriori argomenti da approfondire:
+  </p>
+  
+
+  <ul>
+  
+    <li>Token ERC721</li>
+  
+    <li>Off-chain Oracles</li>
+  
+  </ul>
+
+      
+      <img class="logo" src="pix/skb.png"></article>
+  
+  
+
+      <article>
+        <h3>Thank you</h3>
+        
+          <div class="presenter">
+            
+  
+  <p>
+    Sergio Perticone
+  </p>
+  
+
+  
+  <p>
+    Skillbill srl
+  </p>
+  
+<p class="link"><a href="mailto:sergio.perticone@skillbill.it" target="_blank">sergio.perticone@skillbill.it</a></p>
+          </div>
+        
+      <img class="logo" src="pix/skb.png"></article>
+
+    <div class="slide-area" id="prev-slide-area"></div><div class="slide-area" id="next-slide-area"></div></section><style type="text/css">.logo{position: absolute; right: 12px; bottom: 8px; width: 32px}</style>
+
+    <div id="help" style="display: none;">
+      Use the left and right arrow keys or click the left and right
+      edges of the page to navigate between slides.<br>
+      (Press 'H' or navigate to hide this message.)
+    </div>
+
+    
+    <script src="slides_files/play.js"></script>
+    
+
+    <script>
+      (function() {
+        
+        if (window["location"] && window["location"]["hostname"] == "talks.golang.org") {
+          var ga = document.createElement("script"); ga.type = "text/javascript"; ga.async = true;
+          ga.src = ("https:" == document.location.protocol ? "https://ssl" : "http://www") + ".google-analytics.com/ga.js";
+          var s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(ga, s);
+        }
+      })();
+    </script>
+  
+
+<link rel="stylesheet" type="text/css" href="slides_files/css"><link rel="stylesheet" type="text/css" href="slides_files/styles.css"></body></html>
