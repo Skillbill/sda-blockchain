@@ -1,0 +1,5 @@
+Blockchain for Developers
+Sergio Perticone - Skillbill SRL
+16/02/2018
+
+La Blockchain e le criptovalute in generale, negli ultimi mesi, sono state oggetto di un'enorme esposizione mediatica, tuttavia ci si sofferma spesso sugli aspetti economico-sociali del fenomeno, tralasciando le questioni puramente tecniche ed implementative. L'obiettivo di questo seminario è presentare la tecnologia su cui è fondata la Blockchain dal punto di vista strettamente informatico, in modo da poter familiarizzare con il suo funzionamento e, acquisito questo bagaglio tecnico, essere in grado di ideare e sviluppare software basato su questa tecnologia. All'esposizione teorica dei concetti saranno affiancati esempi concreti (codice!), analizzeremo infatti un'implementazione demo di un distributed ledger ed esempi di programmazione di DAPP per Ethereum.

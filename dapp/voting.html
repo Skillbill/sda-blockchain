@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<head>
+  <title>Voting</title>
+  <script src="js/index.js"></script>
+  <script src="js/voting.js"></script>
+  <script src="js/web3.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="connectBox">
+    <label>provider http address:</label>
+    <div id="provider">
+      <input id="providerAddr" type="text" value="http://127.0.0.1:7545">
+      <input type="button" value="continue" onClick="dapp_init()">
+    </div>
+  </div>
+  <div id="deployBox" class="hidden">
+    <div id="owner">
+      <label>owner address:</label>
+      <input class="address" id="contractOwner" type="text">
+    </div>
+    <div id="candidates">
+      <label>candidates:</label>
+	<input type="button" value="+" onClick="addCandidate()">
+    </div>
+    <div>
+      <input type="button" value="deploy" onClick="dapp_deploy()">
+    </div>
+  </div>
+  <div id="votingBox" class="hidden">
+    <h3 id="votingTitle"></h3>
+    <table id="votingTable">
+      <tr>
+	<th>Candidato</th>
+      </tr>
+    </table>
+    <div id="voter">
+      <label>voter address:</label>
+      <input class="address" id="voterAddress" type="text">
+    </div>
+    <div>
+      <input id="resultButton" type="button" value="risultati" onClick="dapp_results()">
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,5 @@
+src/cmd/hashcash
+src/cmd/hp
+src/cmd/toychain/toychain
+src/js/node_modules/
+src/js/package-lock.json

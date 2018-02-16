@@ -1,0 +1,548 @@
+Blockchain for Developers
+Software Developers Arena
+16 Feb 2018
+
+Sergio Perticone
+Skillbill srl
+sergio.perticone@skillbill.it
+
+* Distributed ledger
+
+.html inject.html
+
+È un database distribuito di transazioni
+
+- Non c'è uno storage centrale
+- Non c'è un'autorità amministratrice
+
+Un po' come BitTorrent, ma più delicato:
+
+- non devono sparire transazioni (tx senza seed)
+- ci vuole il consenso tra i peer per mantenere coerenza
+
+Spauracchio del sistema: *double* *spending*
+
+* 1. Bitcoin
+
+* Satoshi Nakamoto's Bitcoin
+
+Ottobre 2008:
+
+.link https://bitcoin.org/bitcoin.pdf Bitcoin: A Peer-to-Peer Electronic Cash System
+
+Fondamenta teoriche della blockchain
+
+- Definizione di blocco, come unità del _distributed_timestamp_server_
+- Definizione di transazione con il meccanismo di firme digitali
+- Proof-of-Work
+
+Rilascio del codice e live da gennaio 2009
+
+* Bitcoin P2P network
+
+Ad alto livello:
+
+- Una nuova transazione è diffusa a tutti i nodi
+- Ogni peer controla tx e la mette in coda
+- Un peer _costruisce_ il suo blocco dalla coda e lo manda in broadcast
+- Ogni peer riceve il nuovo blocco e ne controlla la validità
+- I peer accettano implicitamente il blocco lavorando al successivo
+
+* Blockchain Internals
+
+* Block
+
+.code src/toychain/block.go /^type Block/,/^}/
+.caption struttura del blocco, [[src/toychain/block.go]]
+
+`PrevHash` è ciò che forma la _chain_
+
+* Miner
+
+I miner sono i peer che producono i blocchi
+Qualunque peer può essere il miner di un blocco
+
+- Assicurano che le nuove transazioni siano registrate in maniera sincrona
+
+Incentivi:
+
+- le transazioni immesse nel blocco hanno un costo di commissione
+- i nuovi blocchi contengono una ricompensa (block reward)
+
+Qual è il trucco?
+
+* Proof of Work
+
+* Proof of Work
+
+Limitare artificialmente la capacità di creare blocchi
+
+Un nodo accetta un blocco solo se il miner riesce a provare di aver risolto un problema
+
+- il problema è difficile da risolvere
+- la soluzione è facile da verificare
+
+Il lavoro del miner viene convertito in token (ricompensa)
+
+In caso di ambiguità un nodo sceglie la chain più lunga (+ lavoro)
+
+* Proof of Work
+
+Grazie alla PoW:
+
+- no Spam
+- no (D)Denial of Service
+- permette di stabilire il consenso
+- resistenza ad attacchi fraudolenti
+- no Spam
+- throughput impostabile da protocollo
+- no Spam
+- no Spam
+- lovely Spam
+
+* Proof of Work di Hashcash
+
+Bitcoin ha mutuato la PoW da Hashcash [Dwork, Naor 1992]
+
+*Idea:* il francobollo per la posta elettronica
+
+- dà un _peso_ all'email
+- limita la capacità di mandarne enormi quantità (Spam)
+
+Ricorda qualcosa?
+
+* Hashcash
+
+Esempio di francobollo:
+
+	X-Hashcash: 1:24:180213122530:sergio@localhost::82gsa6jcvgsKQQ:fXAG
+
+Campi:
+
+.code src/cmd/hashcash.go /^type Header/,/^}/
+.caption header, [[src/cmd/hashcash.go]]
+
+* Hashcash
+
+Per essere valido l'header deve avere questa proprietà:
+
+	$ echo -n 1:24:180213122530:sergio@localhost::82gsa6jcvgsKQQ:fXAG | sha1sum
+	0000007a89c9a369092a1248b830aa5bd8db3d38  -
+	
+Il suo hash `SHA-1` deve essere "piccolo"
+
+- creare un bollo è eseguire un _partial_ preimage attack
+- `lavoro` `=` #bit più significativi uguali a `0`
+
+Non è triviale, computazionalmente, perché `SHA-1` è una funzione di hash crittografica
+
+* Hashcash
+
+.play src/cmd/hashcash.go /^func .*Hashcash/,/^}/
+
+## * Proof of Work nella Blockchain
+
+## Il miner prepara il blocco...
+
+## .code src/toychain/miner.go /^func .*prepareNextBlock/,/^}/
+## .caption il miner assembla un blocco da minare, [[src/toychain/miner.go]]
+
+* Proof of Work nella Blockchain
+
+.code src/toychain/miner.go /^func .*mine\(/,/^}/
+.caption goroutine che mina un blocco, [[src/toychain/miner.go]]
+
+* Verifica della PoW
+  
+.code src/toychain/chain.go /^func .*ProofIsValid/,/^}/
+.caption verifica della PoW, [[src/toychain/chain.go]]
+
+* Proof of Stake
+
+Alla Proof of Work (Waste?) c'è una possibile alternativa
+
+funzione randomica che assegna il diritto di creare un blocco
+
+La funzione è pesata proporzionalmente a quanto un candidato (validator) scommette di essere lui il _prescelto_
+
+- candidati eseguono una transazione speciale che "deposita" una somma (stake)
+- ogni nodo, usando _f_, sceglie un miner per il blocco successivo
+- la chain converge per il via delle regole del consenso
+
+* Transazioni
+
+* Transazione
+
+Le transazioni hanno questa struttura:
+
+.code src/toychain/tx.go /^type Transaction/,/^}/
+.caption transazione, [[src/toychain/tx.go]]
+
+* UTXO
+
+I'oggetto di una transazione sono gli UTXO
+
+- Non sono divisibili
+- Sono l'analogo delle monete
+
+.code src/toychain/utxo.go /^type UTXO/,/^}/
+.caption unspent transaction output, [[src/toychain/utxo.go]]
+
+* UTXO Set
+
+- I nodi popolano un database locale per poter validare velocemente la transazioni
+
+.code src/toychain/utxo.go /^type UTXOSet/,/^}/
+	func (set UTXOSet) Get(address string) []UTXO
+	func (set UTXOSet) Add(address string, utxo UTXO)
+	func (set UTXOSet) Remove(address string, utxo UTXO)
+	func (set UTXOSet) Contains(address string, utxo UTXO) bool
+.caption UTXO Set, [[src/toychain/utxo.go]]
+
+* UTXO
+
+Saldo di un conto sulla Toychain:
+
+.code src/toychain/chain.go /^func .*fundsFromUTXO\(/,/^}/
+.code src/toychain/chain.go /^func .*Funds\(/,/^}/
+
+.caption token dagli utxo, [[src/toychain/chain.go]]
+
+* UTXO
+
+Trasferimento di UTXO
+
+.code src/toychain/chain.go /START_UTXO/,/END_UTXO/
+.caption snippet trasferimento utxo, [[src/toychain/chain.go]]
+
+* Indirizzi
+
+La sicurezza di Bitcoin è basata sulla crittografia a chiave asimmetrica
+L'indirizzo è derivato dalla chiave pubblica
+
+.code src/toychain/crypto/crypto.go /^func .*Address\(/,/^}/
+.caption generazione indirizzo, [[src/toychain/crypto/crypto.go]]
+
+Esempi di indirizzi:
+
+- Toychain: `LnvGRRelRQFiUw0QaIbfzKO0yW4jebBcIpEcqjIejCI`
+- Bitcoin: `14v6afb9yYFmM3fozN54yxsEtBCLVmoRwx`
+
+* Transazioni
+
+Alice vuole pagare token a Bob:
+
+- Bob ed Alice generano due coppie di chiavi asimmetriche
+- Bob ed Alice si scambiano le chiavi pubbliche su un canale sicuro
+- Alice crea una transazione verso l'hash della _pubkey_ di Bob (indirizzo)
+- Alice firma la transazione con la propria _privkey_
+
+I token trasferiti saranno spendibili solo da chi possiede la chiave privata di Bob
+
+* Transazioni
+
+.image pix/tx.png
+.caption meccanismo crittografico delle le transazioni
+
+* PayToAddress
+
+.code src/toychain/payer.go /^func .*PayToAddress\(/,/^}/
+
+## * Crittografia usata da bitcoin
+## .code src/toychain/crypto/crypto.go /^import/,/^\)/
+## .code src/toychain/crypto/crypto.go /^func .*NewPrivateKey/,/^}/
+## .code src/toychain/crypto/crypto.go /^func .*Sign\(/,/^}/
+## .caption utilizzo di ECDSA in go, [[src/toychain/crypto/crypto.go]]
+
+* Transazioni
+#.code src/toychain/tx.go /^func .*Sign\(/,/^}/
+
+.code src/toychain/chain.go /^func .*checkTransaction\(/,/^}/
+.caption verifica di una transazione, [[src/toychain/chain.go]]
+#.code src/toychain/crypto/crypto.go /^func .*PublicKey.*Address/,/^}/
+#.caption indirizzo da chiave pubblica, [[src/toychain/crypto/crypto.go]]
+
+## * Coinbase
+
+## Esiste una transazione particolare in ogni blocco, la _coinbase_
+
+## La coinbase è quella che genera nuovi token
+## La transazione è aggiunta dal miner come prima transazione del blocco
+
+## - Nessun input
+## - Un solo output, il creatore del blocco
+## - Non è firmata
+
+* Transazioni
+
+Per evitare il double spending, sono previste le seguenti limitazioni:
+
+- Un pagamento può essere accettato con sicurezza dopo circa 6 blocchi
+- Per gli UTXO di una coinbase bisogna aspettare 100 blocchi (per protocollo)
+
+* 2. Smart Contracts
+
+* Smart Contracts
+
+Il termine Smart Contract viene introdotto da Nick Szabo nel 1996
+
+Szabo descrive la possibilità di creare contratti tra estranei con la mediazione di protocolli software e l'aiuto di tecniche crittografiche
+
+Questi contratti devono possedere:
+
+- observability
+- verifiability
+- privity
+- enforceability
+
+* Smart Contract
+
+- È un programma
+- Agisce all'interno di un protocollo con garanzie simili a quelle di un distributed ledger
+
+Possiamo usare la blockchain?
+
+* Bitcoin scripting
+
+In effetti abbiamo semplificato un po', la verifica delle transazioni è un po' più sofisticata
+
+Ad una transazione è associato un lucchetto digitale sotto forma di programma
+
+- il programma è eseguito da tutti i nodi
+- se il programma, con un dato input, è valutato a _true_ la transazione è sbloccata
+
+* Bitcoin VM
+
+Ogni nodo esegue una VM
+
+- macchina a stack
+- isolata dall'host
+- interpreta bytecode
+- non Turing-completa
+
+Un transazione viene effettuata tramite l'esecuzione di uno script
+
+* Bitcoin VM
+
+Sketch di funzionamento della VM:
+
+	for {
+		input := nextInput()
+		if input.isEOF() {
+		   return stack.pop()
+		}
+		if input.isData() {
+			stack.push(input.Data())
+			continue
+		}
+		switch input.OPCode() {
+		case OP_DUP:
+			v := stack.pop()
+			stack.push(v)
+			stack.push(v)
+		...
+		}
+	}
+
+* Script
+
+Gli script per Bitcoin sono un'espressione RPN della forma:
+
+	[ DATO... ] [ DATO | OPCODE ]...
+	   input       programma
+
+
+- predicato logico che permette l'utilizzo degli UTXO
+
+- il più comune per le transazioni è Pay to Public Key Hash (P2PKH)
+
+* P2PKH
+
+Scenario: Alice vuole pagare Bob
+
+- Alice crea una transazione con script P2PKH:
+
+	OP_DUP OP_HASH160 $hash_pubkey_bob OP_EQUAL OP_VERIFY OP_CHECKSIG
+
+Scenario: Bob vuole spendere i bitcoin ricevuti di Alice
+
+- Bob crea una transazione con input gli UTXO creati dalla transazione di Alice
+- Bob aggiunge alla transazione la sua chiave pubblica e firma la transazione
+- I nodi eseguono lo script di Alice con gli input di Bob:
+
+	$signature_bob $pubkey_bob OP_DUP OP_HASH160 $hash_pubkey_bob OP_EQUAL OP_VERIFY OP_CHECKSIG
+
+Se il risultato è _true_ la transazione può essere confermata
+
+* Script alternativi
+
+- M-of-N Multi Signature:
+
+	$m $pubkey_1 ... $pubkey_n $n OP_CHECKMULTISIG
+
+- Sblocco mediante token privato:
+
+	OP_SHA256 OP_SHA256 $given_hash EQUAL
+
+- Transazioni con vincoli temporali:
+
+  	$expire_value OP_CHECKLOCKTIMEVERIFY OP_DROP
+
+- Regalare bitcoin:
+
+  OP_TRUE
+
+- Bruciare bitcoin:
+
+  OP_RETURN
+
+* Limitazioni
+
+Gli Smart Contract su bitcoin non sembrano poi così "smart"
+
+- Limitazioni di calcolabilità
+- Mancanza di stato
+- Blockchain-blindness
+
+* Ethereum
+
+* Ethereum
+
+.link https://web.archive.org/web/20150328054135/https://github.com/ethereum/wiki/wiki/White-Paper A Next-Generation Smart Contract and Decentralized Application Platform
+
+*Idea*: Sfruttare la tecnologia della blockchain e generalizzarla
+
+Non non piattaforma che esegue contratti per potere scambiare valuta digitale
+Ma una macchina distribuita per contratti arbitrari
+
+Una sorta di blockchain universale (ERC20)
+
+* Accounts
+
+Non ci sono UTXO
+
+Ad un account Ethereum è invece associato uno stato:
+
+- nonce
+- saldo
+- storage
+- codice
+
+Un transazione corrisponde ad un cambio di stato
+
+* Accounts
+
+Esistono due tipi di account
+
+Esterni
+
+- Analoghi agli indirizzi bitcoin
+
+Contratti
+
+- possono effettuare transazioni solo in risposta a tx ricevute
+- possono interagire con altri contratti
+- devono essere creati con una tx particolare
+
+* Indirizzo
+
+160 bit meno significativi dell'hash della chiave pubblica
+
+	    indirizzo = SHA-3(pubKey) & (1<<160) - 1
+
+Esempio: `0x627306090abaB3A6e1400e9345bC60c78a8BEf57`
+
+- No checksum
+- Indipendente dal tipo di account
+
+* EVM
+
+La EVM va a benzina (gas), in questo modo è possibile avere un upper bound per un dato programma
+
+Un cambio di stato consuma gas
+
+Per ogni tx bisogna specificare:
+
+- *Gas* *Limit*: la massima quantità di benzina che si è disposti a comprare
+- *Gas* *Price*: il prezzo a cui si è disposti a comprare un unità di gas
+
+Se la benzina è sufficiente per la tx, l'eventuale avanzo viene rimborsato
+Altrimenti la transazione è annullata (lo stato non cambia)
+
+I costi di commissione sono il prodotto tra il gas consumato e il prezzo proposto
+
+* ether
+
+Ethereum ha una moneta nativa: ether
+
+Protocollo → Ethereum
+Moneta → ether (ETH)
+
+La blockchain di Ethereum non esiste per supportare la moneta, ma il contrario
+
+Gli ether sono il meccanismo per regolare le risorse
+
+- l'ether ha come più piccolo sottomultiplo il `wei` (10e-18 ETH)
+
+- Il prezzo del gas è solitamente riportato in wei o Gwei
+
+* Solidity
+
+Il linguaggio "contract-oriented" per lo sviluppo di Smart Contract su Ethereum
+
+- sintassi "ispirata" a javascript
+- staticamente tipato
+- non ideato da esperti di linguaggi programmazione
+
+* Solidity
+
+_Does_ _anybody_ _remember_ _DAO_?
+
+Alcuni problemi di design:
+
+- tutto di default è mutabile
+- nessun check a compile time delle annotazioni
+- operazioni su interi non sono sicure (overflow)
+- la gestione interi a virgola fissa è incompleta
+- l'ordine di valutazione delle espressioni non è definita
+
+In generale sono problemi ben affrontati in letteratura e molti risolti in linguaggi general purpose
+
+* Solidity
+
+.code src/sol/voting.sol /^contract/,
+
+* Compilazione contratto
+
+.code src/js/compile.js
+
+* Deploy sulla blockchain
+	
+.code src/js/web3_ex.js
+
+* Ganache
+
+.link https://github.com/trufflesuite/ganache
+.image pix/ganache.png _ 800
+
+* Voting DAPP
+
+.caption [[dapp/voting.html]]
+.iframe dapp/voting.html 600 800
+
+* Conclusioni
+
+Bitcoin
+
+- fondamentale dal punto di vista storico
+- aiuta a definire i concetti generali della tecnologia
+
+Ethereum
+
+- focus sulla parte computativa
+- piattaforma su cui poter sviluppare nuove idee
+
+Ulteriori argomenti da approfondire:
+
+- Token ERC721
+- Off-chain Oracles

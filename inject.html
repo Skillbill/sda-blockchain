@@ -1,0 +1,24 @@
+<!--// -*- js -*-
+////// injected javascript that injects html
+//////--><script>
+(()=>{
+    if (!document.body) {
+        return document.write("you're doing it wrong");
+    }
+    const stamp = (slide) => {
+        let img = document.createElement('img');
+        img.classList.add('logo');
+        img.src = 'pix/skb.png';
+        slide.appendChild(img);
+    }
+    document.addEventListener("DOMContentLoaded", ()=> {
+        let slides = document.getElementsByTagName('article');
+        for (let i = 0; i<slides.length; i++) {
+            stamp(slides[i]);
+        }
+    });
+    let style = document.createElement('style');
+    style.type = 'text/css';
+    style.innerText = '.logo{position: absolute; right: 12px; bottom: 8px; width: 32px}';
+    document.body.appendChild(style);
+})()//</script>
