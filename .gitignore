@@ -1,3 +1,4 @@
+bin/
 src/cmd/hashcash
 src/cmd/hp
 src/cmd/toychain/toychain
