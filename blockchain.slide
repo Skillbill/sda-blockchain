@@ -43,7 +43,7 @@ Rilascio del codice e live da gennaio 2009
 Ad alto livello:
 
 - Una nuova transazione è diffusa a tutti i nodi
-- Ogni peer controla tx e la mette in coda
+- Ogni peer controlla la tx e la mette in coda
 - Un peer _costruisce_ il suo blocco dalla coda e lo manda in broadcast
 - Ogni peer riceve il nuovo blocco e ne controlla la validità
 - I peer accettano implicitamente il blocco lavorando al successivo
@@ -412,7 +412,7 @@ Gli Smart Contract su bitcoin non sembrano poi così "smart"
 
 *Idea*: Sfruttare la tecnologia della blockchain e generalizzarla
 
-Non non piattaforma che esegue contratti per potere scambiare valuta digitale
+Non piattaforma che esegue contratti per potere scambiare valuta digitale
 Ma una macchina distribuita per contratti arbitrari
 
 Una sorta di blockchain universale (ERC20)
