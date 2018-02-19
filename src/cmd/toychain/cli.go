@@ -16,6 +16,7 @@ var commands = map[string]Command{
 	"pool":  _pool,
 	"stat":  _stat,
 	"pay":   _pay,
+	"help":  _help,
 }
 
 func cliexec(ctx *Context, argv []string) error {
@@ -24,6 +25,33 @@ func cliexec(ctx *Context, argv []string) error {
 		return errf("unknown command")
 	}
 	return fn(ctx, argv[1:])
+}
+
+func _help(ctx *Context, args []string) error {
+	fmt.Printf(`
+block last		# print the last block stats
+block i			# print the ith block stats
+
+pool			# show nodes overview
+pool add		# add a node to the pool
+pool add n		# add n nodes to the pool
+pool del i		# remove the ith node from the pool
+pool del all		# remove every node from the pool
+
+pool run|stop i		# run|stop the mining for the ith node in the pool
+pool run|stop all	# run|stop the mining for every node in the pool
+
+pay src dst amount	# make a tx of the given amount from address src to address dst
+
+diff			# show PoW current difficulty
+diff n			# change PoW difficulty to n
+stat			# show toychain status
+
+exit			# shutdown the toychain and exit
+help			# you already know this one
+
+`)
+	return nil
 }
 
 func _block(ctx *Context, args []string) error {
